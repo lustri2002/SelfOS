@@ -1,400 +1,286 @@
-# SelfOS — Guida Tecnica al Deployment
+# SelfOS Deployment Guide
 
-> Documento tecnico per il deployment in produzione della PWA e la configurazione dei provider AI.
+This guide explains how to deploy SelfOS as a private, self-hosted Progressive Web App.
 
----
+## Contents
 
-## Indice
+1. [Deployment Architecture](#1-deployment-architecture)
+2. [Prerequisites](#2-prerequisites)
+3. [Supabase Configuration](#3-supabase-configuration)
+4. [Vercel Deployment](#4-vercel-deployment)
+5. [VPS Deployment](#5-vps-deployment)
+6. [Production Security Checklist](#6-production-security-checklist)
+7. [Domain and HTTPS](#7-domain-and-https)
+8. [AI Provider Configuration](#8-ai-provider-configuration)
+9. [Backups and Recovery](#9-backups-and-recovery)
+10. [Monitoring](#10-monitoring)
 
-1. [Architettura di deployment](#1-architettura-di-deployment)
-2. [Prerequisiti](#2-prerequisiti)
-3. [Configurazione Supabase (Database)](#3-configurazione-supabase-database)
-4. [Deployment su Vercel (raccomandato)](#4-deployment-su-vercel-raccomandato)
-5. [Deployment su VPS / self-hosted (alternativa)](#5-deployment-su-vps--self-hosted-alternativa)
-6. [Checklist di sicurezza per la produzione](#6-checklist-di-sicurezza-per-la-produzione)
-7. [Dominio e HTTPS](#7-dominio-e-https)
-8. [Configurazione dei provider AI](#8-configurazione-dei-provider-ai)
-9. [Backup e disaster recovery](#9-backup-e-disaster-recovery)
-10. [Monitoraggio](#10-monitoraggio)
+## 1. Deployment Architecture
 
----
-
-## 1. Architettura di deployment
-
-```
-┌─────────────────┐         ┌──────────────────┐         ┌──────────────────┐
-│                 │  HTTPS  │                  │  HTTPS  │                  │
-│   Browser /     │ ◄─────► │   Next.js App    │ ◄─────► │   Supabase       │
-│   PWA installata│         │   (SSR + API)    │         │   (Postgres+Auth)│
-│                 │         │                  │         │                  │
-└─────────────────┘         └────────┬─────────┘         └──────────────────┘
-                                     │ HTTPS
-                                     ▼
-                            ┌──────────────────┐
-                            │   AI Provider    │
-                            │   (Anthropic /   │
-                            │    OpenAI)       │
-                            └──────────────────┘
+```text
+Browser / PWA
+     |
+     | HTTPS
+     v
+Next.js App
+|-- Server Components
+|-- Route Handlers
+|-- Auth middleware
+|-- Service worker
+     |
+     +--> Supabase Auth + PostgreSQL + RLS
+     +--> AI provider, optional
+     +--> Strava API, optional
+     `--> Twelve Data API, optional
 ```
 
-**Componenti:**
-
-| Componente | Ruolo | Dati sensibili gestiti |
+| Component | Role | Sensitive Data |
 |---|---|---|
-| **Next.js App** | Server-side rendering, API routes, middleware auth | Chiavi API (env vars), cookie di sessione |
-| **Supabase** | Database PostgreSQL, autenticazione, Row Level Security | Tutti i dati utente (note, finanze, fitness) |
-| **AI Provider** | Analisi screenshot, generazione piani allenamento | Immagini inviate per analisi (non persistite) |
+| Next.js app | SSR, API routes, auth middleware | API keys, session cookies |
+| Supabase | PostgreSQL, Auth, Row Level Security | User data |
+| AI provider | Screenshot analysis and fitness coaching | Images or text sent for analysis |
+| Strava | Fitness activity sync | OAuth tokens |
+| Twelve Data | ETF price updates | API key |
 
----
+## 2. Prerequisites
 
-## 2. Prerequisiti
+- Node.js 20 or newer
+- npm
+- Supabase account
+- Vercel account, or a VPS with Node.js
+- Optional custom domain
+- Optional AI provider key for Anthropic or OpenAI
+- Optional Strava and Twelve Data credentials
 
-- **Node.js** >= 20.x
-- **Account Supabase** (free tier sufficiente per uso personale)
-- **Account Vercel** (free tier sufficiente) oppure un VPS con almeno 1 GB RAM
-- **Dominio personale** (fortemente raccomandato per HSTS e cookie sicuri)
-- **Chiave API** per almeno un provider AI (Anthropic o OpenAI)
+## 3. Supabase Configuration
 
----
+### 3.1 Create the Project
 
-## 3. Configurazione Supabase (Database)
+1. Go to [supabase.com](https://supabase.com) and create a new project.
+2. Choose the region closest to your users.
+3. Set a strong database password.
+4. Copy:
+   - `Project URL` -> `NEXT_PUBLIC_SUPABASE_URL`
+   - `anon public key` -> `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 
-### 3.1 — Creare il progetto
+### 3.2 Run Migrations
 
-1. Vai su [supabase.com](https://supabase.com) → **New Project**
-2. Scegli la **regione piu vicina** a te (es. `eu-central-1` per l'Italia)
-3. Imposta una **database password sicura** (min. 20 caratteri, generata casualmente)
-4. Annota:
-   - `Project URL` → diventa `NEXT_PUBLIC_SUPABASE_URL`
-   - `anon public key` → diventa `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+Run every SQL file in `supabase/migrations/` in numerical order.
 
-### 3.2 — Eseguire le migrazioni
+For a small personal instance, the Supabase SQL Editor is enough. For repeatable deployments, adapt the workflow to the Supabase CLI and run `supabase db push`.
 
-Apri il **SQL Editor** nella dashboard Supabase ed esegui i file di migrazione **in ordine**:
+### 3.3 Database Security
 
-```
-supabase/migrations/001_initial_schema.sql
-supabase/migrations/002_pinned_notes.sql
-supabase/migrations/003_shared_notes.sql
-supabase/migrations/004_note_versions.sql
-supabase/migrations/005_soft_delete_and_templates.sql
-supabase/migrations/006_reminders_colors_nested_notebooks.sql
-supabase/migrations/007_task_manager.sql
-supabase/migrations/008_shared_projects.sql
-supabase/migrations/009_monthly_income.sql
-supabase/migrations/010_monthly_notes_finance.sql
-supabase/migrations/011_fitness_habits.sql
-supabase/migrations/012_training_plans.sql
-supabase/migrations/013_planned_workouts.sql
-supabase/migrations/014_body_metrics.sql
-supabase/migrations/015_body_metrics_height.sql
-```
+Row Level Security is expected to be enabled on user-owned tables. Policies should scope records with `auth.uid() = user_id`, so authenticated users can access only their own data.
 
-### 3.3 — Sicurezza del database
+Recommended Supabase settings:
 
-**Row Level Security (RLS)** e gia abilitata su tutte le tabelle. Ogni policy usa `auth.uid() = user_id`, il che garantisce che un utente autenticato possa accedere **solo ai propri dati**.
-
-Impostazioni critiche nella dashboard Supabase:
-
-| Impostazione | Dove | Valore |
+| Setting | Location | Recommendation |
 |---|---|---|
-| **Disabilita signup pubblico** | Authentication → Settings | Se non vuoi che altri si registrino, disattiva "Enable sign up" |
-| **Email confirmation** | Authentication → Settings | Attiva se lasci la registrazione aperta |
-| **JWT expiry** | Authentication → Settings | Lascia il default (3600s) o abbassalo a 1800s |
-| **API key exposure** | Settings → API | L'`anon key` e sicura da esporre (RLS la limita). **NON esporre MAI la `service_role key`** |
+| Public sign-up | Authentication -> Settings | Disable for a private instance |
+| Email confirmation | Authentication -> Settings | Enable if sign-up is open |
+| JWT expiry | Authentication -> Settings | Keep default or reduce for stricter sessions |
+| Service role key | Settings -> API | Never expose it to the browser |
 
-### 3.4 — Creare l'utente
+### 3.4 Create the First User
 
-Se hai disabilitato la registrazione pubblica:
+If public sign-up is disabled:
 
-1. Dashboard Supabase → **Authentication** → **Users** → **Add User**
-2. Inserisci email e password
-3. L'utente avra accesso alla PWA con queste credenziali
+1. Open **Authentication -> Users -> Add User**.
+2. Create the user manually.
+3. Sign in from the app with those credentials or with the configured magic-link flow.
 
----
+## 4. Vercel Deployment
 
-## 4. Deployment su Vercel (raccomandato)
+Vercel is the recommended hosting path for most Next.js deployments.
 
-Vercel e la piattaforma nativa per Next.js. Offre HTTPS automatico, CDN globale e zero configurazione server.
+### 4.1 Deploy from GitHub
 
-### 4.1 — Setup iniziale
+1. Open [vercel.com](https://vercel.com).
+2. Import the SelfOS repository.
+3. Keep the detected framework preset as **Next.js**.
+4. Add the required environment variables.
+5. Deploy.
+
+CLI alternative:
 
 ```bash
-# 1. Installa Vercel CLI (opzionale, puoi usare la dashboard)
 npm i -g vercel
-
-# 2. Collegati al progetto
 vercel link
-
-# 3. Deploy
 vercel --prod
 ```
 
-Oppure dalla dashboard:
+### 4.2 Environment Variables
 
-1. [vercel.com](https://vercel.com) → **Import Git Repository**
-2. Seleziona il repository
-3. Framework preset: **Next.js** (rilevato automaticamente)
-4. Clicca **Deploy**
+Add these in **Project Settings -> Environment Variables**:
 
-### 4.2 — Variabili d'ambiente
+| Variable | Required | Notes |
+|---|---:|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | Yes | Public Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes | Public anon key protected by RLS |
+| `APP_ORIGIN` | No | Canonical production origin |
+| `NEXT_PUBLIC_APP_ORIGIN` | No | Public origin for client-side use |
+| `APP_ENC_KEY` | No | Base64 32-byte key for server-side token encryption |
+| `ANTHROPIC_API_KEY` | No | Required only for Anthropic-backed AI features |
+| `OPENAI_API_KEY` | No | Required only if `config/ai.ts` uses OpenAI |
+| `STRAVA_CLIENT_ID` | No | Required only for Strava OAuth |
+| `STRAVA_CLIENT_SECRET` | No | Server-side Strava secret |
+| `STRAVA_REDIRECT_URI` | No | Example: `https://example.com/api/fitness/strava/callback` |
+| `TWELVE_DATA_API_KEY` | No | Required only for ETF price sync |
+| `FINANCE_CRON_SECRET` | No | Required only for protected finance cron endpoints |
+| `NEXT_PUBLIC_SELFOS_MODULES` | No | Public allowlist of enabled modules |
+| `NEXT_PUBLIC_SELFOS_DISABLED_MODULES` | No | Public list of hidden modules |
 
-Vai su **Project Settings → Environment Variables** e aggiungi:
+`NEXT_PUBLIC_*` values are bundled for the browser by design. Keep provider keys, cron secrets, service role keys, and encryption keys server-side only.
 
-| Variabile | Valore | Ambienti |
-|---|---|---|
-| `NEXT_PUBLIC_SUPABASE_URL` | `https://xxxxx.supabase.co` | Production, Preview |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | `<replace-with-your-supabase-anon-key>` | Production, Preview |
-| `ANTHROPIC_API_KEY` | `<replace-with-your-anthropic-api-key>` | Production |
+### 4.3 Callback URLs
 
-> **Nota:** Le variabili `NEXT_PUBLIC_*` sono esposte nel bundle client — questo e corretto e necessario per Supabase. L'`ANTHROPIC_API_KEY` e `OPENAI_API_KEY` sono server-only: Next.js non le include nel client bundle perche NON hanno il prefisso `NEXT_PUBLIC_`.
+Configure callback URLs for any providers you enable:
 
-### 4.3 — Dominio personalizzato
+- Supabase Auth: `/auth/callback`
+- Strava: `/api/fitness/strava/callback`
 
-1. **Project Settings → Domains** → aggiungi il tuo dominio
-2. Configura i record DNS come indicato da Vercel:
-   - `A` record: `76.76.21.21`
-   - oppure `CNAME`: `cname.vercel-dns.com`
-3. HTTPS viene configurato automaticamente (Let's Encrypt)
-4. Attiva **"Redirect to primary domain"** per evitare duplicazioni
+Use absolute production URLs in provider dashboards.
 
-### 4.4 — Impostazioni di sicurezza Vercel
+## 5. VPS Deployment
 
-| Impostazione | Dove | Raccomandazione |
-|---|---|---|
-| **Deployment Protection** | Settings → Deployment Protection | Attiva per le Preview, disattiva per Production |
-| **Function Region** | Settings → Functions | Scegli `fra1` (Francoforte) per minimizzare latenza dall'Italia |
-| **Build logs** | Sono privati di default | Verifica che non contengano API key nei log |
+Use a VPS when you want full operational control.
 
----
-
-## 5. Deployment su VPS / self-hosted (alternativa)
-
-Per chi preferisce il controllo totale (es. Hetzner, DigitalOcean, Oracle Cloud Free Tier).
-
-### 5.1 — Setup server
+### 5.1 Server Setup
 
 ```bash
-# Su un server Ubuntu 22.04+
-
-# 1. Installa Node.js 20
+# Ubuntu 22.04+
 curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
 sudo apt-get install -y nodejs
 
-# 2. Clona il progetto
-git clone https://github.com/TUO_UTENTE/selfos.git /opt/selfos
+git clone https://github.com/lustri2002/SelfOS.git /opt/selfos
 cd /opt/selfos
 
-# 3. Installa dipendenze e builda
-npm ci --production=false
+npm ci
 npm run build
+```
 
-# 4. Crea il file .env.local
-cat > .env.local << 'EOF'
-NEXT_PUBLIC_SUPABASE_URL=https://xxxxx.supabase.co
+Create `.env.local`:
+
+```bash
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
-ANTHROPIC_API_KEY=
+APP_ORIGIN=https://selfos.example.com
 NODE_ENV=production
-EOF
+```
 
-# 5. Proteggi il file .env.local
+Then protect it:
+
+```bash
 chmod 600 .env.local
 ```
 
-### 5.2 — Process Manager (PM2)
+### 5.2 Process Manager
 
 ```bash
-# Installa PM2
 sudo npm i -g pm2
-
-# Avvia l'app
-pm2 start npm --name "selfos" -- start
-
-# Auto-restart al reboot
+pm2 start npm --name selfos -- start
 pm2 startup
 pm2 save
 ```
 
-### 5.3 — Reverse proxy con Nginx + HTTPS
+### 5.3 Reverse Proxy
+
+Use Nginx, Caddy, Traefik, or a managed reverse proxy. At minimum, enforce HTTPS and forward requests to the Next.js process on port `3000`.
+
+Example Nginx outline:
 
 ```nginx
-# /etc/nginx/sites-available/selfos
-
 server {
     listen 80;
-    server_name tuodominio.it;
+    server_name selfos.example.com;
     return 301 https://$host$request_uri;
 }
 
 server {
     listen 443 ssl http2;
-    server_name tuodominio.it;
+    server_name selfos.example.com;
 
-    # Certificati Let's Encrypt (generati con certbot)
-    ssl_certificate     /etc/letsencrypt/live/tuodominio.it/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/tuodominio.it/privkey.pem;
+    ssl_certificate     /etc/letsencrypt/live/selfos.example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/selfos.example.com/privkey.pem;
 
-    # Sicurezza TLS
-    ssl_protocols TLSv1.2 TLSv1.3;
-    ssl_ciphers 'ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384';
-    ssl_prefer_server_ciphers on;
-    ssl_session_cache shared:SSL:10m;
-    ssl_session_timeout 10m;
-
-    # Header di sicurezza aggiuntivi (oltre a quelli gia in next.config.ts)
-    add_header X-Robots-Tag "noindex, nofollow" always;
-
-    # Limiti request body (previene upload giganti)
     client_max_body_size 10M;
 
-    # Rate limiting a livello Nginx (difesa perimetrale)
-    limit_req_zone $binary_remote_addr zone=app:10m rate=30r/m;
-
     location / {
-        limit_req zone=app burst=20 nodelay;
         proxy_pass http://127.0.0.1:3000;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
+        proxy_set_header Connection "upgrade";
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_cache_bypass $http_upgrade;
     }
 }
 ```
 
-```bash
-# Abilita il sito e genera certificato
-sudo ln -s /etc/nginx/sites-available/selfos /etc/nginx/sites-enabled/
-sudo certbot --nginx -d tuodominio.it
-sudo nginx -t && sudo systemctl reload nginx
-```
-
-### 5.4 — Firewall
+### 5.4 Firewall
 
 ```bash
-# Solo porte essenziali
 sudo ufw default deny incoming
 sudo ufw default allow outgoing
-sudo ufw allow 22/tcp    # SSH
-sudo ufw allow 80/tcp    # HTTP (redirect a HTTPS)
-sudo ufw allow 443/tcp   # HTTPS
+sudo ufw allow 22/tcp
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
 sudo ufw enable
 ```
 
-### 5.5 — Aggiornamenti automatici di sicurezza
+## 6. Production Security Checklist
 
-```bash
-sudo apt install unattended-upgrades
-sudo dpkg-reconfigure -plow unattended-upgrades
+Implemented or expected in the app:
+
+| Control | Implementation |
+|---|---|
+| Content Security Policy | Configured in `next.config.ts` |
+| HSTS | Configured in `next.config.ts` |
+| Frame protection | `X-Frame-Options: DENY` |
+| Referrer policy | `strict-origin-when-cross-origin` |
+| Permissions policy | Camera, microphone, and geolocation disabled by default |
+| Database isolation | Supabase Row Level Security |
+| XSS protection | Sanitized shared pages and export rendering |
+| Auth boundary | Middleware and server-side user checks |
+| Rate limiting | In-memory limiter for AI and sync endpoints |
+| PWA cache safety | API responses and personal data excluded from service worker cache |
+
+Before production:
+
+```text
+[ ] Environment variables are configured for the right environment.
+[ ] No secret uses the NEXT_PUBLIC_ prefix.
+[ ] HTTPS is enabled and HTTP redirects to HTTPS.
+[ ] Supabase public sign-up matches your access model.
+[ ] RLS is enabled on all user-owned tables.
+[ ] OAuth callback URLs match the production origin.
+[ ] Logs do not include tokens, financial data, or private notes.
+[ ] Backups are configured and periodically tested.
+[ ] Optional modules without providers show an unconfigured state, not runtime errors.
 ```
 
----
+## 7. Domain and HTTPS
 
-## 6. Checklist di sicurezza per la produzione
+HTTPS is required for secure cookies, OAuth callbacks, and installable PWA behavior outside localhost.
 
-### Gia implementato nell'app
+Options:
 
-| Protezione | Implementazione | File |
-|---|---|---|
-| **Content Security Policy** | Header completo senza `unsafe-eval`; `unsafe-inline` solo per stili | `next.config.ts` |
-| **HSTS** | `max-age=63072000; includeSubDomains; preload` | `next.config.ts` |
-| **X-Frame-Options** | `DENY` — impedisce embedding in iframe | `next.config.ts` |
-| **X-Content-Type-Options** | `nosniff` — previene MIME sniffing | `next.config.ts` |
-| **Referrer-Policy** | `strict-origin-when-cross-origin` | `next.config.ts` |
-| **Permissions-Policy** | Camera, microfono, geolocalizzazione disabilitati | `next.config.ts` |
-| **RLS (Row Level Security)** | Ogni tabella ha policy `auth.uid() = user_id` | Migrazioni SQL |
-| **XSS protection** | DOMPurify sulle pagine condivise, escaping su PDF export | `share/[token]/page.tsx`, `NoteEditor.tsx` |
-| **Cookie security** | `httpOnly`, `secure`, `sameSite: lax` | `auth/login/route.ts` |
-| **Auth middleware** | Redirect a `/login` per tutte le rotte protette | `middleware.ts` |
-| **Rate limiting** | In-memory sliding window sulle API AI | `lib/rate-limit.ts` |
-| **Input size validation** | Max 5 MB per upload immagini | `api/fitness/analyze/route.ts` |
-| **Server-side auth check** | `supabase.auth.getUser()` su ogni API route | Tutte le API routes |
+| Option | Notes |
+|---|---|
+| Custom domain on Vercel | Recommended for the easiest setup |
+| Vercel subdomain | Good for demos and private testing |
+| VPS with Let's Encrypt | Good when you need full control |
+| Cloudflare Tunnel | Useful when avoiding direct inbound traffic to a VPS |
 
-### Checklist da verificare prima del go-live
+If you enable HSTS preload, treat it as a long-term commitment: browsers will force HTTPS for the domain and subdomains.
 
-```
-[ ] Variabili d'ambiente configurate correttamente
-    - ANTHROPIC_API_KEY non ha il prefisso NEXT_PUBLIC_
-    - SUPABASE_SERVICE_ROLE_KEY non e definita (a meno che non serva)
+## 8. AI Provider Configuration
 
-[ ] HTTPS attivo e forzato
-    - Tutti gli URL usano https://
-    - HTTP redirige a HTTPS (301)
+SelfOS supports Anthropic and OpenAI through a small provider abstraction in `config/ai.ts`.
 
-[ ] Supabase
-    - Registrazione pubblica disabilitata (se uso personale)
-    - RLS attiva su TUTTE le tabelle
-    - Nessuna policy con "true" come condizione (tranne shared_notes per lettura)
-    - Database password forte (>= 20 caratteri)
-
-[ ] DNS
-    - Record CAA configurato per limitare le CA autorizzate
-    - DNSSEC attivo se il registrar lo supporta
-
-[ ] Backup
-    - Backup automatico Supabase attivo (incluso nel piano)
-    - Export JSON periodico tramite il pulsante in-app
-
-[ ] Monitoring
-    - Alerting su errori 5xx configurato
-    - Log delle API non contengono dati sensibili
-
-[ ] PWA
-    - manifest.webmanifest servito correttamente
-    - Service worker registrato (sw.js accessibile)
-    - Icone presenti in /icons/
-```
-
----
-
-## 7. Dominio e HTTPS
-
-### Perche e obbligatorio
-
-- I **cookie `Secure`** funzionano solo su HTTPS
-- Il **Service Worker** (PWA) richiede HTTPS (eccetto localhost)
-- Le **API Supabase** comunicano via HTTPS — mixed content sarebbe bloccato
-- **HSTS** (gia configurato) istruisce il browser a usare sempre HTTPS
-
-### Opzioni dominio
-
-| Opzione | Costo | Note |
-|---|---|---|
-| Dominio `.it` / `.com` | ~10-15 EUR/anno | Professionale, controllo DNS completo |
-| Sottodominio Vercel (`*.vercel.app`) | Gratuito | HTTPS incluso, nessun DNS da gestire |
-| Cloudflare Tunnel (VPS) | Gratuito | Alternativa a Nginx+Certbot, proxy integrato |
-
-### Configurazione HSTS Preload (opzionale, massima sicurezza)
-
-Se vuoi che il tuo dominio sia incluso nella HSTS preload list dei browser:
-
-1. Verifica che HSTS sia servito con `includeSubDomains; preload` (gia configurato)
-2. Vai su [hstspreload.org](https://hstspreload.org) e invia il dominio
-3. **Attenzione:** una volta inserito nella preload list, non potrai piu servire HTTP — decisione permanente
-
----
-
-## 8. Configurazione dei provider AI
-
-L'app supporta **Anthropic** e **OpenAI** come provider AI. La configurazione e centralizzata in un unico file: non serve modificare codice applicativo.
-
-### 8.1 — File di configurazione
-
-```
-config/ai.ts
-```
-
-Questo file definisce un oggetto con i "casi d'uso" AI dell'app:
-
-| Caso d'uso | Funzione | Richiede Vision |
-|---|---|---|
-| `analyze` | Analisi screenshot fitness (estrae dati allenamento) | Si |
-| `coach` | Generazione piani di allenamento settimanali | No |
-
-### 8.2 — Configurazione attuale (Anthropic)
+The configuration maps AI use cases to provider, model, base URL, and API key environment variable:
 
 ```typescript
 export const aiConfig: Record<string, AIUseCaseConfig> = {
@@ -417,202 +303,51 @@ export const aiConfig: Record<string, AIUseCaseConfig> = {
 };
 ```
 
-### 8.3 — Come passare a OpenAI
+To switch a use case to OpenAI, change `provider`, `model`, `apiKeyEnv`, and `baseUrl`, then set `OPENAI_API_KEY` in the deployment environment.
 
-**Step 1** — Aggiungi la chiave API OpenAI alle variabili d'ambiente:
+AI features should degrade gracefully when provider keys are missing. Keep provider keys server-side and never expose them with a `NEXT_PUBLIC_` prefix.
 
-```bash
-# .env.local (sviluppo)
-OPENAI_API_KEY=
+## 9. Backups and Recovery
 
-# Su Vercel: Settings → Environment Variables → aggiungi OPENAI_API_KEY
-```
+Recommended backup strategy:
 
-**Step 2** — Modifica `config/ai.ts`:
-
-```typescript
-export const aiConfig: Record<string, AIUseCaseConfig> = {
-  analyze: {
-    provider: "openai",
-    model: "gpt-4o",            // Supporta Vision
-    apiKeyEnv: "OPENAI_API_KEY",
-    baseUrl: "https://api.openai.com",
-    maxTokens: 1024,
-    // apiVersion non serve per OpenAI
-  },
-  coach: {
-    provider: "openai",
-    model: "gpt-4o-mini",       // Piu economico per testo
-    apiKeyEnv: "OPENAI_API_KEY",
-    baseUrl: "https://api.openai.com",
-    maxTokens: 4096,
-  },
-};
-```
-
-**Step 3** — Aggiorna la CSP in `next.config.ts` (se non gia presente):
-
-```
-connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.anthropic.com https://api.openai.com;
-```
-
-> Entrambi i domini sono gia presenti nella CSP attuale. Nessuna modifica necessaria.
-
-**Step 4** — Redeploy:
-
-```bash
-# Vercel
-vercel --prod
-
-# VPS
-npm run build && pm2 restart selfos
-```
-
-### 8.4 — Configurazione mista (provider diversi per caso d'uso)
-
-Puoi usare provider diversi per ciascun caso d'uso. Esempio: OpenAI per Vision (analyze) e Anthropic per testo (coach):
-
-```typescript
-export const aiConfig: Record<string, AIUseCaseConfig> = {
-  analyze: {
-    provider: "openai",
-    model: "gpt-4o",
-    apiKeyEnv: "OPENAI_API_KEY",
-    baseUrl: "https://api.openai.com",
-    maxTokens: 1024,
-  },
-  coach: {
-    provider: "anthropic",
-    model: "claude-haiku-4-5-20251001",
-    apiKeyEnv: "ANTHROPIC_API_KEY",
-    baseUrl: "https://api.anthropic.com",
-    maxTokens: 4096,
-    apiVersion: "2023-06-01",
-  },
-};
-```
-
-In questo caso servono entrambe le chiavi API nelle variabili d'ambiente.
-
-### 8.5 — Modelli consigliati
-
-**Anthropic:**
-
-| Modello | Caso d'uso | Vision | Costo relativo |
-|---|---|---|---|
-| `claude-sonnet-4-6` | Analyze (screenshot) | Si | Medio |
-| `claude-haiku-4-5-20251001` | Coach (testo) | Si | Basso |
-| `claude-opus-4-0-20250514` | Qualsiasi (massima qualita) | Si | Alto |
-
-**OpenAI:**
-
-| Modello | Caso d'uso | Vision | Costo relativo |
-|---|---|---|---|
-| `gpt-4o` | Analyze (screenshot) | Si | Medio |
-| `gpt-4o-mini` | Coach (testo) | Si | Basso |
-| `o3` | Qualsiasi (ragionamento avanzato) | Si | Alto |
-
-### 8.6 — Parametri di configurazione
-
-| Campo | Tipo | Descrizione |
+| Frequency | Action | Location |
 |---|---|---|
-| `provider` | `"anthropic" \| "openai"` | Provider API da utilizzare |
-| `model` | `string` | Nome esatto del modello (come da documentazione del provider) |
-| `apiKeyEnv` | `string` | Nome della variabile d'ambiente che contiene la API key |
-| `baseUrl` | `string` | URL base dell'API. Modificabile per proxy, gateway o endpoint custom |
-| `maxTokens` | `number` | Numero massimo di token nella risposta AI |
-| `apiVersion` | `string?` | Versione API (solo Anthropic, formato `YYYY-MM-DD`) |
+| Daily | Supabase automatic backup, if available on your plan | Supabase |
+| Weekly | Manual in-app JSON export | Local or private cloud storage |
+| Monthly | Full database snapshot | Supabase dashboard or CLI |
 
-### 8.7 — Usare un proxy / API gateway
+The in-app export is intended for personal recovery and portability. Treat exported files as sensitive.
 
-Se vuoi instradare le chiamate AI attraverso un proxy (es. per logging, caching o billing centralizzato), modifica solo il campo `baseUrl`:
+## 10. Monitoring
 
-```typescript
-analyze: {
-  provider: "anthropic",
-  model: "claude-sonnet-4-6",
-  apiKeyEnv: "ANTHROPIC_API_KEY",
-  baseUrl: "https://il-tuo-proxy.com/anthropic", // <-- cambia solo questo
-  maxTokens: 1024,
-  apiVersion: "2023-06-01",
-},
-```
+For Vercel:
 
-Il client inviera le richieste a `https://il-tuo-proxy.com/anthropic/v1/messages` (Anthropic) o `.../v1/chat/completions` (OpenAI). Assicurati che il proxy preservi headers e body.
+- Use Function logs for API and server-side failures.
+- Add alerts for repeated 5xx errors.
+- Review build logs after dependency upgrades.
 
-### 8.8 — Gestione crediti esauriti
-
-L'app rileva automaticamente gli errori di crediti/quota esauriti e mostra un toast all'utente:
-
-> "Crediti terminati: valuta i costi attuali e decidi quale utilizzare"
-
-Pattern riconosciuti: `credit`, `insufficient_quota`, `rate_limit`, `billing`, `exceeded your current quota`, `overloaded`, `insufficient_funds`.
-
-Per cambiare provider al volo quando i crediti finiscono, basta aggiornare `config/ai.ts` e fare redeploy.
-
-## 9. Backup e disaster recovery
-
-### 9.1 — Backup Supabase
-
-- **Automatici:** inclusi nel piano Supabase (giornalieri, retention 7 giorni su free tier)
-- **Manuali:** Dashboard → Database → Backups → Download
-
-### 9.2 — Backup in-app
-
-L'app include un pulsante **"Esporta JSON"** in Impostazioni che scarica tutti i dati dell'utente:
-
-- Note e notebook
-- Conti e bilanci finanziari
-- Spese ricorrenti e impegni finanziari
-
-Il file viene generato **interamente nel browser** (nessun dato transita per il server).
-
-### 9.3 — Strategia consigliata
-
-| Frequenza | Azione | Dove |
-|---|---|---|
-| Giornaliero | Backup automatico Supabase | Cloud Supabase |
-| Settimanale | Export JSON manuale dall'app | Disco locale / cloud storage personale |
-| Mensile | Snapshot completo del database | Supabase Dashboard → Download |
-
----
-
-## 10. Monitoraggio
-
-### Vercel (se usato)
-
-- **Analytics:** attivabili nella dashboard del progetto
-- **Logs:** Functions → seleziona la funzione → Real-time logs
-- **Alerting:** Integrazioni con Slack, email, webhook per errori
-
-### VPS
+For VPS:
 
 ```bash
-# Log dell'app
 pm2 logs selfos
-
-# Monitoraggio risorse
 pm2 monit
-
-# Log Nginx
 tail -f /var/log/nginx/access.log
 tail -f /var/log/nginx/error.log
 ```
 
-### Supabase
+For Supabase:
 
-- **Dashboard → Logs:** query SQL, auth events, API requests
-- **Dashboard → Reports:** utilizzo storage, bandwidth, active users
+- Review Auth logs for failed sign-ins.
+- Review API and database logs for policy errors.
+- Monitor storage, bandwidth, and database usage.
 
----
+## Quick Reference
 
-## Riepilogo rapido
-
-| Cosa devo fare | Come |
+| Goal | Recommended Path |
 |---|---|
-| **Hostare la PWA** | Vercel (consigliato): importa repo → configura env vars → deploy |
-| **Proteggere i dati** | RLS gia attiva + middleware auth + security headers + HTTPS |
-| **Cambiare provider AI** | Modifica solo `config/ai.ts` + aggiungi la chiave API + redeploy |
-| **Cambiare modello AI** | Modifica il campo `model` in `config/ai.ts` + redeploy |
-| **Aggiungere un dominio** | Vercel: Settings → Domains; VPS: Nginx + Certbot |
-| **Backup dei dati** | Pulsante "Esporta JSON" in-app + backup automatici Supabase |
+| Host the PWA | Vercel import -> env vars -> deploy |
+| Protect user data | RLS, middleware auth, HTTPS, server-only secrets |
+| Change AI provider | Edit `config/ai.ts`, add provider key, redeploy |
+| Add a custom domain | Vercel Domains or VPS reverse proxy |
+| Back up data | In-app JSON export plus Supabase backups |
