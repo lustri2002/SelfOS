@@ -1,0 +1,98 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="SelfOS">
+  <defs>
+    <linearGradient id="app-bg" x1="64" y1="42" x2="448" y2="470" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#10233f"/>
+      <stop offset="0.48" stop-color="#090b12"/>
+      <stop offset="1" stop-color="#071f1b"/>
+    </linearGradient>
+    <radialGradient id="halo-blue" cx="34%" cy="18%" r="62%">
+      <stop offset="0" stop-color="#38bdf8" stop-opacity="0.42"/>
+      <stop offset="1" stop-color="#38bdf8" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="halo-green" cx="78%" cy="82%" r="58%">
+      <stop offset="0" stop-color="#10b981" stop-opacity="0.38"/>
+      <stop offset="1" stop-color="#10b981" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="ring" x1="124" y1="96" x2="388" y2="416" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#38bdf8"/>
+      <stop offset="0.45" stop-color="#10b981"/>
+      <stop offset="0.72" stop-color="#f43f5e"/>
+      <stop offset="1" stop-color="#f59e0b"/>
+    </linearGradient>
+    <linearGradient id="core" x1="196" y1="188" x2="316" y2="324" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#f8fafc"/>
+      <stop offset="0.38" stop-color="#bae6fd"/>
+      <stop offset="1" stop-color="#5eead4"/>
+    </linearGradient>
+    <filter id="soft-shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="24" stdDeviation="28" flood-color="#000000" flood-opacity="0.42"/>
+    </filter>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <rect width="512" height="512" rx="112" fill="url(#app-bg)"/>
+  <rect width="512" height="512" rx="112" fill="url(#halo-blue)"/>
+  <rect width="512" height="512" rx="112" fill="url(#halo-green)"/>
+
+  <g filter="url(#soft-shadow)">
+    <circle cx="256" cy="256" r="151" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="2"/>
+    <path
+      d="M256 111
+         C326 111 383 169 383 239
+         C383 312 325 369 252 369
+         C194 369 146 334 128 284"
+      fill="none"
+      stroke="url(#ring)"
+      stroke-width="28"
+      stroke-linecap="round"
+      stroke-dasharray="348 74"
+      filter="url(#glow)"
+    />
+    <path
+      d="M256 401
+         C185 401 128 343 128 272
+         C128 199 186 143 259 143
+         C315 143 361 176 380 225"
+      fill="none"
+      stroke="url(#ring)"
+      stroke-width="18"
+      stroke-linecap="round"
+      stroke-dasharray="248 104"
+      opacity="0.68"
+    />
+  </g>
+
+  <g stroke="rgba(255,255,255,0.24)" stroke-width="3" stroke-linecap="round" opacity="0.78">
+    <path d="M188 211 L256 256 L326 201"/>
+    <path d="M186 303 L256 256 L326 313"/>
+    <path d="M256 176 L256 336"/>
+  </g>
+
+  <g filter="url(#glow)">
+    <circle cx="256" cy="256" r="54" fill="rgba(255,255,255,0.06)"/>
+    <circle cx="256" cy="256" r="34" fill="url(#core)"/>
+    <circle cx="256" cy="256" r="14" fill="#08111c" opacity="0.9"/>
+  </g>
+
+  <g>
+    <circle cx="256" cy="176" r="17" fill="#38bdf8"/>
+    <circle cx="326" cy="201" r="17" fill="#10b981"/>
+    <circle cx="326" cy="313" r="17" fill="#f43f5e"/>
+    <circle cx="186" cy="303" r="17" fill="#f59e0b"/>
+    <circle cx="188" cy="211" r="17" fill="#8b5cf6"/>
+  </g>
+
+  <g fill="#ffffff" opacity="0.86">
+    <circle cx="256" cy="176" r="5"/>
+    <circle cx="326" cy="201" r="5"/>
+    <circle cx="326" cy="313" r="5"/>
+    <circle cx="186" cy="303" r="5"/>
+    <circle cx="188" cy="211" r="5"/>
+  </g>
+</svg>

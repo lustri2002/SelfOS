@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light dark">
+    <meta name="supported-color-schemes" content="light dark">
+    <title>Il tuo link di accesso a SelfOS</title>
+    <style>
+      @media (prefers-color-scheme: dark) {
+        body,
+        .email-bg {
+          background: #0f1117 !important;
+        }
+
+        .card {
+          background: #161923 !important;
+          border-color: #262b38 !important;
+        }
+
+        .text-main {
+          color: #f6f7fb !important;
+        }
+
+        .text-muted {
+          color: #a7adbb !important;
+        }
+
+        .divider {
+          border-color: #2a3040 !important;
+        }
+      }
+
+      @media only screen and (max-width: 600px) {
+        .wrapper {
+          padding: 24px 14px !important;
+        }
+
+        .card {
+          border-radius: 18px !important;
+        }
+
+        .content {
+          padding: 30px 22px !important;
+        }
+
+        .button {
+          display: block !important;
+          width: 100% !important;
+        }
+      }
+    </style>
+  </head>
+  <body style="margin:0; padding:0; background:#f4f7fb; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; color:#151923;">
+    <span style="display:none !important; visibility:hidden; opacity:0; overflow:hidden; max-height:0; max-width:0; color:transparent;">
+      Accedi in modo sicuro al tuo sistema operativo personale con SelfOS.
+    </span>
+
+    <table role="presentation" class="email-bg" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#f4f7fb;">
+      <tr>
+        <td align="center" class="wrapper" style="padding:42px 18px;">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:620px;">
+            <tr>
+              <td align="center" style="padding:0 0 18px;">
+                <div role="img" aria-label="SelfOS" style="width:56px; height:56px; margin:0 auto;">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="56" height="56" style="display:block; border:0;">
+                    <defs>
+                      <linearGradient id="app-bg" x1="64" y1="42" x2="448" y2="470" gradientUnits="userSpaceOnUse">
+                        <stop offset="0" stop-color="#10233f"/>
+                        <stop offset="0.48" stop-color="#090b12"/>
+                        <stop offset="1" stop-color="#071f1b"/>
+                      </linearGradient>
+                      <radialGradient id="halo-blue" cx="34%" cy="18%" r="62%">
+                        <stop offset="0" stop-color="#38bdf8" stop-opacity="0.42"/>
+                        <stop offset="1" stop-color="#38bdf8" stop-opacity="0"/>
+                      </radialGradient>
+                      <radialGradient id="halo-green" cx="78%" cy="82%" r="58%">
+                        <stop offset="0" stop-color="#10b981" stop-opacity="0.38"/>
+                        <stop offset="1" stop-color="#10b981" stop-opacity="0"/>
+                      </radialGradient>
+                      <linearGradient id="ring" x1="124" y1="96" x2="388" y2="416" gradientUnits="userSpaceOnUse">
+                        <stop offset="0" stop-color="#38bdf8"/>
+                        <stop offset="0.45" stop-color="#10b981"/>
+                        <stop offset="0.72" stop-color="#f43f5e"/>
+                        <stop offset="1" stop-color="#f59e0b"/>
+                      </linearGradient>
+                      <linearGradient id="core" x1="196" y1="188" x2="316" y2="324" gradientUnits="userSpaceOnUse">
+                        <stop offset="0" stop-color="#f8fafc"/>
+                        <stop offset="0.38" stop-color="#bae6fd"/>
+                        <stop offset="1" stop-color="#5eead4"/>
+                      </linearGradient>
+                      <filter id="soft-shadow" x="-20%" y="-20%" width="140%" height="140%">
+                        <feDropShadow dx="0" dy="24" stdDeviation="28" flood-color="#000000" flood-opacity="0.42"/>
+                      </filter>
+                      <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+                        <feGaussianBlur stdDeviation="5" result="blur"/>
+                        <feMerge>
+                          <feMergeNode in="blur"/>
+                          <feMergeNode in="SourceGraphic"/>
+                        </feMerge>
+                      </filter>
+                    </defs>
+
+                    <rect width="512" height="512" rx="112" fill="url(#app-bg)"/>
+                    <rect width="512" height="512" rx="112" fill="url(#halo-blue)"/>
+                    <rect width="512" height="512" rx="112" fill="url(#halo-green)"/>
+
+                    <g filter="url(#soft-shadow)">
+                      <circle cx="256" cy="256" r="151" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="2"/>
+                      <path d="M256 111 C326 111 383 169 383 239 C383 312 325 369 252 369 C194 369 146 334 128 284" fill="none" stroke="url(#ring)" stroke-width="28" stroke-linecap="round" stroke-dasharray="348 74" filter="url(#glow)"/>
+                      <path d="M256 401 C185 401 128 343 128 272 C128 199 186 143 259 143 C315 143 361 176 380 225" fill="none" stroke="url(#ring)" stroke-width="18" stroke-linecap="round" stroke-dasharray="248 104" opacity="0.68"/>
+                    </g>
+
+                    <g stroke="rgba(255,255,255,0.24)" stroke-width="3" stroke-linecap="round" opacity="0.78">
+                      <path d="M188 211 L256 256 L326 201"/>
+                      <path d="M186 303 L256 256 L326 313"/>
+                      <path d="M256 176 L256 336"/>
+                    </g>
+
+                    <g filter="url(#glow)">
+                      <circle cx="256" cy="256" r="54" fill="rgba(255,255,255,0.06)"/>
+                      <circle cx="256" cy="256" r="34" fill="url(#core)"/>
+                      <circle cx="256" cy="256" r="14" fill="#08111c" opacity="0.9"/>
+                    </g>
+
+                    <g>
+                      <circle cx="256" cy="176" r="17" fill="#38bdf8"/>
+                      <circle cx="326" cy="201" r="17" fill="#10b981"/>
+                      <circle cx="326" cy="313" r="17" fill="#f43f5e"/>
+                      <circle cx="186" cy="303" r="17" fill="#f59e0b"/>
+                      <circle cx="188" cy="211" r="17" fill="#8b5cf6"/>
+                    </g>
+
+                    <g fill="#ffffff" opacity="0.86">
+                      <circle cx="256" cy="176" r="5"/>
+                      <circle cx="326" cy="201" r="5"/>
+                      <circle cx="326" cy="313" r="5"/>
+                      <circle cx="186" cy="303" r="5"/>
+                      <circle cx="188" cy="211" r="5"/>
+                    </g>
+                  </svg>
+                </div>
+                <div class="text-muted" style="padding-top:12px; color:#697386; font-size:13px; font-weight:700; letter-spacing:.08em; text-transform:uppercase;">
+                  SelfOS
+                </div>
+              </td>
+            </tr>
+
+            <tr>
+              <td class="card" style="background:#ffffff; border:1px solid #e4e9f2; border-radius:24px; overflow:hidden; box-shadow:0 18px 52px rgba(31,41,55,.12);">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                  <tr>
+                    <td style="height:8px; background:linear-gradient(90deg,#0a84ff 0%,#16b981 52%,#f59e0b 100%);"></td>
+                  </tr>
+                  <tr>
+                    <td class="content" style="padding:42px 44px 38px;">
+                      <h1 class="text-main" style="margin:0; color:#111827; font-size:30px; line-height:1.15; font-weight:800; letter-spacing:0;">
+                        Bentornato in SelfOS.
+                      </h1>
+
+                      <p class="text-muted" style="margin:18px 0 0; color:#596275; font-size:16px; line-height:1.65;">
+                        Abbiamo ricevuto una richiesta di accesso per
+                        <strong class="text-main" style="color:#111827;">{{ .Email }}</strong>.
+                        Usa il pulsante qui sotto per entrare nel tuo sistema operativo personale.
+                      </p>
+
+                      <table role="presentation" align="center" cellspacing="0" cellpadding="0" border="0" style="margin:30px auto 26px;">
+                        <tr>
+                          <td align="center" style="border-radius:12px; background:#0a84ff; box-shadow:0 10px 24px rgba(10,132,255,.28);">
+                            <a class="button" href="{{ .ConfirmationURL }}" target="_blank" style="display:inline-block; padding:15px 24px; color:#ffffff; font-size:15px; line-height:1; font-weight:800; text-decoration:none; border-radius:12px;">
+                              Accedi con magic link
+                            </a>
+                          </td>
+                        </tr>
+                      </table>
+
+                      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#f7fafc; border:1px solid #e7edf5; border-radius:16px;">
+                        <tr>
+                          <td style="padding:16px 18px;">
+                            <p style="margin:0; color:#445064; font-size:13px; line-height:1.55;">
+                              Questo link e' personale e puo' essere usato una sola volta. Se non hai richiesto tu l'accesso, puoi ignorare questa email in sicurezza.
+                            </p>
+                          </td>
+                        </tr>
+                      </table>
+
+                      <hr class="divider" style="border:0; border-top:1px solid #e8edf5; margin:30px 0 20px;">
+
+                      <p class="text-muted" style="margin:0; color:#7a8394; font-size:12px; line-height:1.6;">
+                        Se il pulsante non funziona, copia e incolla questo link nel browser:
+                      </p>
+                      <p style="margin:8px 0 0; font-size:12px; line-height:1.6; word-break:break-all;">
+                        <a href="{{ .ConfirmationURL }}" target="_blank" style="color:#0a84ff; text-decoration:underline;">{{ .ConfirmationURL }}</a>
+                      </p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <tr>
+              <td align="center" class="text-muted" style="padding:20px 12px 0; color:#8a93a5; font-size:12px; line-height:1.6;">
+                Inviata da SelfOS<br>
+                <a href="{{ .SiteURL }}" target="_blank" style="color:#687386; text-decoration:none;">{{ .SiteURL }}</a>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
