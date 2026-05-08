@@ -21,9 +21,13 @@ const securityHeaders = [
 ];
 
 const isDev = process.env.NODE_ENV === "development";
+const allowedDevOrigins = process.env.NEXT_ALLOWED_DEV_ORIGINS
+  ?.split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
 
 const nextConfig: NextConfig = {
-  allowedDevOrigins: ["192.168.1.160"],
+  ...(allowedDevOrigins?.length ? { allowedDevOrigins } : {}),
   devIndicators: false,
 
   // Barrel-optimize heavy packages so unused named exports are truly dropped.
